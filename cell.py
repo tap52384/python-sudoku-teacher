@@ -17,10 +17,16 @@ class Cell:
         # The double slash is the floor division operator; it performs division and rounds down to
         # the nearest whole number
         # https://docs.python.org/3/library/operator.html
-        self.house = (row - 1) // 3 * 3 + (column - 1) // 3 + 1
+        self.house = Cell.getHouseNumber(row, column)
 
         # Create a set to store the possible values for the cell
         self.possible_values = set(range(MIN_NUMBER, MAX_NUMBER + 1))
+
+        # Create a variable to store house notes for the cell as a set
+        self.house_notes = set()
+
+        # Create a variable to store cell notes for the cell as a set
+        self.cell_notes = set()
 
         # Create a variable to store the value of the cell
         # If the value is 0, the cell is empty
@@ -34,6 +40,17 @@ class Cell:
         # Create a variable to store the original value of the cell
         # This is used to check if the cell is part of the original puzzle
         self.original_value = original_value
+
+        # For the current cell, get the indexes of the cells in the same row, column, and house
+        # These indexes will never change, so getting them on object creation may be more efficient.
+        self.row_indexes = set(Cell.getIndexesOfRow(row))
+        self.row_indexes.discard(self.index)
+
+        self.column_indexes = set(Cell.getIndexesOfColumn(column))
+        self.column_indexes.discard(self.index)
+
+        self.house_indexes = set(Cell.getIndexesOfHouse(self.house))
+        self.house_indexes.discard(self.index)
 
     def __str__(self):
         return f"Cell {self.row}, {self.column}"
@@ -49,14 +66,27 @@ class Cell:
     @staticmethod
     def getIndex(row, column):
         """
-        Get the 1-based index of a cell in the board (1-81)
+        Get the 0-based index of a cell in the board (0-80). The board (or grid) will store
+        all Cell objects as a simple 80-element list.
         """
         if row < MIN_NUMBER or row > MAX_NUMBER:
             raise ValueError(f"Row number must be between {MIN_NUMBER} and {MAX_NUMBER}")
         if column < MIN_NUMBER or column > MAX_NUMBER:
             raise ValueError(f"Column number must be between {MIN_NUMBER} and {MAX_NUMBER}")
 
-        return (row - 1) * MAX_NUMBER + column
+        return ((row - 1) * MAX_NUMBER + column) - 1
+
+    @staticmethod
+    def getHouseNumber(row, column):
+        """
+        Get the house number of a cell
+        """
+        if row < MIN_NUMBER or row > MAX_NUMBER:
+            raise ValueError(f"Row number must be between {MIN_NUMBER} and {MAX_NUMBER}")
+        if column < MIN_NUMBER or column > MAX_NUMBER:
+            raise ValueError(f"Column number must be between {MIN_NUMBER} and {MAX_NUMBER}")
+
+        return (row - 1) // 3 * 3 + (column - 1) // 3 + 1
 
     @staticmethod
     def getIndexesOfHouse(house):
@@ -108,6 +138,53 @@ class Cell:
 
         return indexes
 
+    @staticmethod
+    def getAllSeenIndexes(row, column):
+        """
+        Get the indexes of all the cells that can be seen by a given cell
+        """
+        indexes = set(Cell.getIndexesOfRow(row))
+        indexes.update(Cell.getIndexesOfColumn(column))
+        indexes.update(Cell.getIndexesOfHouse(Cell.getHouseNumber(row, column)))
+
+        # Remove the index of the given cell
+        indexes.discard(Cell.getIndex(row, column))
+
+        return list(indexes)
+
+    @property
+    def rowIndexes(self):
+        """
+        Indexes of the cells in the same row as the current cell
+        """
+        return self.row_indexes
+
+    @property
+    def columnIndexes(self):
+        """
+        Indexes of the cells in the same column as the current cell
+        """
+        return self.column_indexes
+
+    @property
+    def houseIndexes(self):
+        """
+        Indexes of the cells in the same house as the current cell
+        """
+        return self.house_indexes
+
+    @property
+    def seenIndexes(self):
+        """
+        Indexes of the cells that can be seen by the current cell
+        """
+        # https://docs.python.org/3/library/stdtypes.html#frozenset.union
+        indexes = self.row_indexes.union(self.column_indexes)
+        indexes = indexes.union(self.house_indexes)
+        indexes.discard(self.index)
+
+        return indexes
+
     @property
     def row(self):
         return self._row
@@ -126,7 +203,21 @@ class Cell:
 
     @property
     def index(self):
+        """
+        Returns the 0-based index of the cell
+        """
         return self._index
+
+    @property
+    def friendly_index(self):
+        """
+        Returns the 1-based index of the cell
+        """
+        return self._index + 1
+
+    @property
+    def original_value(self):
+        return self._original_value
 
     def hasSameHouse(self, other):
         return isinstance(other,Cell) and \
@@ -146,8 +237,11 @@ class Cell:
             self.hasSameColumn(other) or \
             self.hasSameHouse(other)
 
-    def remove_possible_value(self, value):
-        self.possible_values.discard(value)
+    def updatePossibleValuesSeen(self, grid):
+        for index in self.seenIndexes:
+            cell = grid.cells[index]
+            if cell.value in self.possible_values:
+                self.possible_values.remove(cell.value)
 
     @value.setter
     def value(self, value):
