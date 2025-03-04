@@ -13,9 +13,14 @@ MAX_CELL_INDEX = (MAX_NUMBER * MAX_NUMBER) - 1
 # Valid non-empty cell values
 VALID_VALUES = set(range(EMPTY, MAX_NUMBER + 1))
 
+# Create valid values as a string for use in error messages
+VALID_VALUES_STRING = set()
+for value in VALID_VALUES:
+    VALID_VALUES_STRING.add(str(value))
+
 # When reading a file or an input string representing a sudoku grid, we need to
 # accept 0, '.', '_', and ' ' as empty cells
 EMPTY_CELLS = {'0', '.', '_', ' '}
 
 # Valid input values for importing a sudoku grid
-VALID_INPUT_VALUES = VALID_VALUES.union(EMPTY_CELLS)
+VALID_INPUT_VALUES = VALID_VALUES_STRING.union(EMPTY_CELLS)

@@ -10,7 +10,7 @@ class Grid:
         Initializes a new grid with the given string.
         """
         # This is a list of cells that will be used to store the Cell objects
-        self._cells = [None] * (MAX_NUMBER * MAX_NUMBER)
+        self._cells = []
 
         # This will store a string representation of the grid and any original values
         self._grid_string = None
@@ -34,9 +34,15 @@ class Grid:
         output = ""
         for i in range(MAX_NUMBER):
             for j in range(MAX_NUMBER):
-                output += f"{self.getCell(i + 1, j + 1)} "
+                output += f"{self.get_cell(i + 1, j + 1)} "
             output += "\n"
         return output
+
+    def get_cell(self, row, column):
+        """
+        Get the cell at the given row and column.
+        """
+        return self._cells[Cell.get_index(row, column)]
 
     def _validate_grid_string(self, grid_string):
         """
@@ -79,7 +85,10 @@ class Grid:
                 cell = Cell(row + 1, column + 1, original_value=cell_value)
 
                 # Store the cell in the grid
-                self._cells[cell.index] = cell
+                self._cells.append(cell)
+
+                # Check that the cell was added to the grid in the correct order
+                assert self._cells[Cell.get_index(row + 1, column + 1)] == cell
 
                 # If the cell is not empty, add it to the solved cell indexes
                 if cell.value != 0:

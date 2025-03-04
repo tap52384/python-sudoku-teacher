@@ -1,4 +1,5 @@
 from constants import MIN_NUMBER, MAX_NUMBER
+from termcolor import colored
 
 class Cell:
     """
@@ -7,17 +8,20 @@ class Cell:
     def __init__(self, row=0, column=0, original_value=0):
         if row < MIN_NUMBER or row > MAX_NUMBER:
             raise ValueError(f"Row number must be between {MIN_NUMBER} and {MAX_NUMBER}")
-        self.row = row
+        self._row = row
 
         if column < MIN_NUMBER or column > MAX_NUMBER:
             raise ValueError(f"Column number must be between {MIN_NUMBER} and {MAX_NUMBER}")
-        self.column = column
+        self._column = column
+
+        if original_value < 0 or original_value > MAX_NUMBER:
+            raise ValueError(f"Original value must be between {MIN_NUMBER} and {MAX_NUMBER}")
 
         # Using the row and column, set the house number
         # The double slash is the floor division operator; it performs division and rounds down to
         # the nearest whole number
         # https://docs.python.org/3/library/operator.html
-        self.house = Cell.getHouseNumber(row, column)
+        self._house = Cell.getHouseNumber(row, column)
 
         # Create a set to store the possible values for the cell
         self.possible_values = set(range(MIN_NUMBER, MAX_NUMBER + 1))
@@ -30,33 +34,41 @@ class Cell:
 
         # Create a variable to store the value of the cell
         # If the value is 0, the cell is empty
-        if original_value < 0 or original_value > MAX_NUMBER:
-            raise ValueError(f"Original value must be between {MIN_NUMBER} and {MAX_NUMBER}")
-        self.value = original_value
+        self._value = original_value
 
         # Determine the index of the cell in the board
-        self.index = Cell.getIndex(row, column)
+        self._index = Cell.get_index(row, column)
 
         # Create a variable to store the original value of the cell
         # This is used to check if the cell is part of the original puzzle
-        self.original_value = original_value
+        self._original_value = original_value
 
         # For the current cell, get the indexes of the cells in the same row, column, and house
         # These indexes will never change, so getting them on object creation may be more efficient.
-        self.row_indexes = set(Cell.getIndexesOfRow(row))
+        self.row_indexes = set(Cell.get_indexesOfRow(row))
         self.row_indexes.discard(self.index)
 
-        self.column_indexes = set(Cell.getIndexesOfColumn(column))
+        self.column_indexes = set(Cell.get_indexesOfColumn(column))
         self.column_indexes.discard(self.index)
 
-        self.house_indexes = set(Cell.getIndexesOfHouse(self.house))
+        self.house_indexes = set(Cell.get_indexesOfHouse(self.house))
         self.house_indexes.discard(self.index)
 
     def __str__(self):
-        return f"Cell {self.row}, {self.column}"
+        # If the cell is empty, return an underscore
+        # If the cell is part of the original puzzle, return the value in blue
+        # If the cell is not part of the original puzzle, return the value in green
+
+        if self.value == 0:
+            return "_"
+
+        if self.original_value > 0:
+            return colored(self.value, "blue")
+
+        return colored(self.value, "green")
 
     def __repr__(self):
-        return f"Cell({self.row}, {self.column})"
+        return f"Cell({self._row}, {self._column})"
 
     def __eq__(self, other):
         return isinstance(other, Cell) and \
@@ -64,7 +76,7 @@ class Cell:
             self.column == other.column
 
     @staticmethod
-    def getIndex(row, column):
+    def get_index(row, column):
         """
         Get the 0-based index of a cell in the board (0-80). The board (or grid) will store
         all Cell objects as a simple 80-element list.
@@ -89,7 +101,7 @@ class Cell:
         return (row - 1) // 3 * 3 + (column - 1) // 3 + 1
 
     @staticmethod
-    def getIndexesOfHouse(house):
+    def get_indexesOfHouse(house):
         """
         Get the indexes of the cells in a house
         """
@@ -104,12 +116,12 @@ class Cell:
         indexes = []
         for i in range(3):
             for j in range(3):
-                indexes.append(Cell.getIndex(row + i, column + j))
+                indexes.append(Cell.get_index(row + i, column + j))
 
         return indexes
 
     @staticmethod
-    def getIndexesOfRow(row):
+    def get_indexesOfRow(row):
         """
         Get the indexes of the cells in a row
         """
@@ -119,12 +131,12 @@ class Cell:
         # Create a list to store the indexes of the cells in the row
         indexes = []
         for i in range(MAX_NUMBER):
-            indexes.append(Cell.getIndex(row, i + 1))
+            indexes.append(Cell.get_index(row, i + 1))
 
         return indexes
 
     @staticmethod
-    def getIndexesOfColumn(column):
+    def get_indexesOfColumn(column):
         """
         Get the indexes of the cells in a column
         """
@@ -134,7 +146,7 @@ class Cell:
         # Create a list to store the indexes of the cells in the column
         indexes = []
         for i in range(MAX_NUMBER):
-            indexes.append(Cell.getIndex(i + 1, column))
+            indexes.append(Cell.get_index(i + 1, column))
 
         return indexes
 
@@ -143,12 +155,12 @@ class Cell:
         """
         Get the indexes of all the cells that can be seen by a given cell
         """
-        indexes = set(Cell.getIndexesOfRow(row))
-        indexes.update(Cell.getIndexesOfColumn(column))
-        indexes.update(Cell.getIndexesOfHouse(Cell.getHouseNumber(row, column)))
+        indexes = set(Cell.get_indexesOfRow(row))
+        indexes.update(Cell.get_indexesOfColumn(column))
+        indexes.update(Cell.get_indexesOfHouse(Cell.getHouseNumber(row, column)))
 
         # Remove the index of the given cell
-        indexes.discard(Cell.getIndex(row, column))
+        indexes.discard(Cell.get_index(row, column))
 
         return list(indexes)
 
@@ -187,18 +199,30 @@ class Cell:
 
     @property
     def row(self):
+        """
+        Returns the 1-based row number of the cell
+        """
         return self._row
 
     @property
     def column(self):
+        """
+        Returns the 1-based column number of the cell
+        """
         return self._column
 
     @property
     def house(self):
+        """
+        Returns the house number of the cell.
+        """
         return self._house
 
     @property
     def value(self):
+        """
+        Returns the value of the cell.
+        """
         return self._value
 
     @property
@@ -217,13 +241,22 @@ class Cell:
 
     @property
     def original_value(self):
+        """
+        Returns the original value of the cell, if applicable.
+        """
         return self._original_value
 
-    def hasSameHouse(self, other):
+    def has_same_house(self, other):
+        """
+        Returns True if this cell is in the same house as the other cell.
+        """
         return isinstance(other,Cell) and \
             self.house == other.house
 
     def hasSameRow(self, other):
+        """
+        Returns True if this cell is in the same row as the other cell.
+        """
         return isinstance(other,Cell) and \
             self.row == other.row
 
@@ -235,7 +268,7 @@ class Cell:
         return isinstance(other,Cell) and \
             self.hasSameRow(other) or \
             self.hasSameColumn(other) or \
-            self.hasSameHouse(other)
+            self.has_same_house(other)
 
     def updatePossibleValuesSeen(self, grid):
         for index in self.seenIndexes:
